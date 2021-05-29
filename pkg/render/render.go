@@ -9,32 +9,45 @@ import (
 	"path/filepath"
 
 	"github.com/roadluck/web_app/pkg/config"
+	"github.com/roadluck/web_app/pkg/models"
 )
 
 var functions = template.FuncMap{}
 
-func NewTemplates(a *config.AppConfig)
+var app *config.AppConfig
+
+// NewTemplate setea la configuracion de la app para los templates.
+func NewTemplates(a *config.AppConfig) {
+	app = a
+}
+
+func AddDefaultData(td *models.TemplateData) *models.TemplateData {
+	return td
+}
 
 // RenderTemplate renderiza los templates utilizando el paquete html/template
-func RenderTemplate(w http.ResponseWriter, tmpl string) {
+func RenderTemplate(w http.ResponseWriter, tmpl string, td *models.TemplateData) {
 	// Toma el cache del template desde app config.
+	var tc map[string]*template.Template
 
-	tc, err := CreateTemplateCache()
-
-	if err != nil {
-		log.Fatal(err)
+	if app.UseCache {
+		tc = app.TemplateCache
+	} else {
+		tc, _ = CreateTemplateCache()
 	}
 
 	t, ok := tc[tmpl]
 
 	if !ok {
-		log.Fatal(err)
+		log.Fatal("No se puedo obtener el template.")
 	}
 	buf := new(bytes.Buffer)
 
-	_ = t.Execute(buf, nil)
+	td = AddDefaultData(td)
 
-	_, err = buf.WriteTo(w)
+	_ = t.Execute(buf, td)
+
+	_, err := buf.WriteTo(w)
 
 	if err != nil {
 		fmt.Println("Error writing template to bowser", err)
