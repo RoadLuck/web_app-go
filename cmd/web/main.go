@@ -4,17 +4,33 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/roadluck/web_app/pkg/config"
 	"github.com/roadluck/web_app/pkg/handlers"
 	"github.com/roadluck/web_app/pkg/render"
 )
 
 var portNumber = ":8080"
+var app config.AppConfig
+
+var session *scs.SessionManager
 
 // main es la raiz de la aplicacion
 func main() {
-	var app config.AppConfig
+
+	//Cambiar esto si va a produccion
+	app.Debug = true
+
+	session = scs.New()
+	session.Lifetime = 24 * time.Hour
+	session.Cookie.Persist = true
+
+	session.Cookie.SameSite = http.SameSiteLaxMode
+	session.Cookie.Secure = app.Debug
+
+	app.Session = session
 
 	tc, err := render.CreateTemplateCache()
 
@@ -27,14 +43,9 @@ func main() {
 
 	repo := handlers.NewRepo(&app)
 	handlers.NewHandlers(repo)
-
 	render.NewTemplates(&app)
 
-	//http.HandleFunc("/", handlers.Repo.Home)
-	//http.HandleFunc("/about", handlers.Repo.About)
-
 	fmt.Println("Servidot en el puerto:", portNumber)
-	//http.ListenAndServe(portNumber, nil)
 
 	srv := &http.Server{
 		Addr:    portNumber,
